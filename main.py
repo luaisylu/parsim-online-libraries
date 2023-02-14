@@ -83,6 +83,7 @@ def main():
             list_of_comments = parse_book_page(response_page_book)["list_of_comments"]
             list_of_genres = parse_book_page(response_page_book)["list_of_genres"]
             file_path = os.path.join(book_folder, book_name)
+            download_txt(file_path, response_book)
         except requests.exceptions.HTTPError:
             print("Такой книги нет", id_book)
         except ValueError:
