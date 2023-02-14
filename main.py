@@ -1,17 +1,17 @@
-from bs4 import BeautifulSoup
-from pathvalidate import sanitize_filename
+import argparse
+import os.path
 from pathlib import Path 
 from urllib.parse import urljoin
 from urllib.parse import urlparse
 
 import requests
-import os.path
-import argparse
+from bs4 import BeautifulSoup
+from pathvalidate import sanitize_filename
 
 
 def check_for_redirect(response, folder='books/'):
-  if response.history:
-      raise requests.exceptions.HTTPError
+    if response.history:
+        raise requests.exceptions.HTTPError
 
     
 def download_txt(file_path, response_book):
@@ -38,12 +38,8 @@ def parse_book_page(response):
     link_image = urljoin("https://tululu.org", image_path)
     comments_path = html_code.find(id="content").find_all(class_='black')
     genres_path = html_code.find(id="content").find("span", class_='d_book').find_all("a")
-    list_of_comments = []
-    for comment in comments_path:
-        list_of_comments.append(comment.text)
-    list_of_genres = []
-    for genre in genres_path:
-        list_of_genres.append(genre.text)
+    list_of_comments = ''.join([comment.text for comment in comments_path])
+    list_of_genres = ''.join([genre.text for genre in genres_path])
     website_statistic ={
         "book_name":book_name,
         "author_book":author_book,
@@ -59,7 +55,6 @@ def main():
     parser.add_argument('start_id', type=int)
     parser.add_argument('end_id', type=int)
     args = parser.parse_args()
-    
     
     book_folder = "books"
     Path(book_folder).mkdir(parents=True, exist_ok=True)
@@ -83,11 +78,11 @@ def main():
             list_of_comments = parse_book_page(response_page_book)["list_of_comments"]
             list_of_genres = parse_book_page(response_page_book)["list_of_genres"]
             file_path = os.path.join(book_folder, book_name)
-            download_txt(file_path, response_book)
+            print(list_of_comments)
         except requests.exceptions.HTTPError:
             print("Такой книги нет", id_book)
         except ValueError:
             print("Ошибка кода")
        
-  
-main()
+if __name__ == "__main__":  
+    main()
