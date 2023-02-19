@@ -19,70 +19,76 @@ def download_txt(file_path, response_book):
         file.write(response_book.content)
 
 
-def download_img(link_image, folder_images):
-    file_name_image = urlparse(link_image).path.split('/')[-1]
-    file_path_imge = os.path.join(folder_images, file_name_image)
-    response = requests.get(link_image)
+def download_img(image_link, folder_images):
+    file_name_image = urlparse(image_link).path.split('/')[-1]
+    file_path_image = os.path.join(folder_images, file_name_image)
+    response = requests.get(image_link)
     response.raise_for_status()
-    with open(file_path_imge, 'wb') as file:
+    with open(file_path_image, 'wb') as file:
         file.write(response.content)
 
       
 def parse_book_page(response):
     html_code = BeautifulSoup(response.text, 'lxml')
-    author_and_title_book = html_code.find(id="content").find('h1').text
-    book_name, author_book = author_and_title_book.split("::")
+    book_author_and_title = html_code.find(id="content").find('h1').text
+    book_name, book_author = book_author_and_title.split("::")
     book_name = book_name.strip()
-    author_book = author_book.strip()
-    image_path = html_code.find(id="content").find('img')['src']
-    link_image = urljoin("https://tululu.org", image_path)
-    comments_path = html_code.find(id="content").find_all(class_='black')
-    genres_path = html_code.find(id="content").find("span", class_='d_book').find_all("a")
-    list_of_comments = ''.join([comment.text for comment in comments_path])
-    list_of_genres = ''.join([genre.text for genre in genres_path])
-    website_statistic ={
+    book_author = book_author.strip()
+    image_url = html_code.find(id="content").find('img')['src']
+    image_link = urljoin("https://tululu.org", image_url)
+    comments_url = html_code.find(id="content").find_all(class_='black')
+    genres_url = html_code.find(id="content").find("span", class_='d_book').find_all("a")
+    book_comments = ''.join([comment.text for comment in comments_url])
+    book_genres = ''.join([genre.text for genre in genres_url])
+    characteristics_book ={
         "book_name":book_name,
-        "author_book":author_book,
-        "link_image":link_image,
-        "list_of_comments":list_of_comments,
-        "list_of_genres":list_of_genres
+        "book_author":book_author,
+        "image_link":image_link,
+        "book_comments":book_comments,
+        "book_genres":book_genres
     }
-    return website_statistic
+    return characteristics_book
 
   
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('start_id', type=int)
-    parser.add_argument('end_id', type=int)
+    parser = argparse.ArgumentParser(description='C какой по какую книги  скачать')
+    parser.add_argument('start_id', type=int, help='Первая книга')
+    parser.add_argument('end_id', type=int, help='Последняя книга')
     args = parser.parse_args()
     
     book_folder = "books"
     Path(book_folder).mkdir(parents=True, exist_ok=True)
   
-    folder_images = "images"
-    Path(folder_images).mkdir(parents=True, exist_ok=True)
+    images_folder = "images"
+    Path(images_folder).mkdir(parents=True, exist_ok=True)
     for id_book in range(args.start_id, args.end_id):
         params = {
             "id": id_book
         }
         book_page_url = f"https://tululu.org/b{id_book}/"
         text_url="https://tululu.org/txt.php"
-        response_book = requests.get(text_url, params=params)
-      
+        
         try:
+            response_book = requests.get(text_url, params=params)
             response_book.raise_for_status()
             check_for_redirect(response_book)
             response_page_book = requests.get(book_page_url)
-            book_name = parse_book_page(response_page_book)["book_name"]
-            link_image = parse_book_page(response_page_book)["link_image"]
-            list_of_comments = parse_book_page(response_page_book)["list_of_comments"]
-            list_of_genres = parse_book_page(response_page_book)["list_of_genres"]
+            response_page_book.raise_for_status
+            characteristics_book = parse_book_page(response_page_book)
+            book_name = characteristics_book["book_name"]
+            image_link = characteristics_book["image_link"]
+            book_comments = characteristics_book["book_comments"]
+            book_genres = characteristics_book["book_genres"]
             file_path = os.path.join(book_folder, book_name)
-            print(list_of_comments)
+            download_img(image_link, images_folder)
+            download_txt(file_path, response_book)
         except requests.exceptions.HTTPError:
             print("Такой книги нет", id_book)
         except ValueError:
             print("Ошибка кода")
-       
+        except ConnectionError:
+          print("Ошибка соединения")
+
+          
 if __name__ == "__main__":  
     main()
