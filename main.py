@@ -28,14 +28,14 @@ def download_img(image_link, folder_images):
         file.write(response.content)
 
       
-def parse_book_page(response):
+def parse_book_page(response, book_page_url):
     html_code = BeautifulSoup(response.text, 'lxml')
     book_author_and_title = html_code.find(id="content").find('h1').text
     book_name, book_author = book_author_and_title.split("::")
     book_name = book_name.strip()
     book_author = book_author.strip()
     image_url = html_code.find(id="content").find('img')['src']
-    image_link = urljoin("https://tululu.org", image_url)
+    image_link = urljoin(book_page_url, image_url)
     comments_url = html_code.find(id="content").find_all(class_='black')
     genres_url = html_code.find(id="content").find("span", class_='d_book').find_all("a")
     book_comments = ''.join([comment.text for comment in comments_url])
@@ -74,7 +74,7 @@ def main():
             check_for_redirect(response_book)
             response_page_book = requests.get(book_page_url)
             response_page_book.raise_for_status
-            characteristics_book = parse_book_page(response_page_book)
+            characteristics_book = parse_book_page(response_page_book, book_page_url)
             book_name = characteristics_book["book_name"]
             image_link = characteristics_book["image_link"]
             book_comments = characteristics_book["book_comments"]
